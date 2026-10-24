@@ -16,5 +16,6 @@ crate-type = ["rlib"]
 path = "src/original/sway/main.rs"
 name = "sway"
 [dependencies]
+sway-common = { path = "../common" }
 c2rust-bitfields = "0.22.1"
 libc = "0.2"

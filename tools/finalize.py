@@ -3,6 +3,7 @@
 from pathlib import Path
 import re
 import tomllib
+import os
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -34,8 +35,8 @@ def fix_log_line(match):
     fixed = LOG_LINES.get(filename, {}).get(line, line)
     return match.group(1) + str(fixed) + match.group(4)
 
-def finalize(binary):
-    crate = ROOT / 'crates' / binary
+def finalize(binary, crate=None):
+    crate = ROOT / 'crates' / binary if crate is None else crate
     manifest = crate / 'Cargo.toml'
     text = manifest.read_text()
     text = re.sub(r'\[workspace\]\s*members\s*=\s*\[[^\]]*\]\s*', '', text)
@@ -44,7 +45,12 @@ def finalize(binary):
     text = text.replace('name = "main"', f'name = "{binary}"')
     text = text.replace('crate-type = ["staticlib", "rlib"]', 'crate-type = ["rlib"]')
     if 'build = ' not in text:
-        text = text.replace('[package]', '[package]\nbuild = "../../tools/link.rs"\nlicense = "MIT"')
+        link = os.path.relpath(ROOT / 'tools/link.rs', crate)
+        text = text.replace('[package]', f'[package]\nbuild = "{link}"')
+    if 'license = ' not in text:
+        text = text.replace('[package]', '[package]\nlicense = "MIT"')
+    if not crate.is_relative_to(ROOT / 'crates') and not re.search(r'^\[workspace\]$', text, re.M):
+        text += '\n[workspace]\n'  # Comparison scaffolds are separate workspaces.
     manifest.write_text(text.rstrip() + '\n')
     entry = crate / tomllib.loads(text)['bin'][0]['path']
     for filename in ('rust-toolchain', 'rust-toolchain.toml'):

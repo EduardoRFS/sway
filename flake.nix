@@ -94,9 +94,25 @@
         };
     in {
       packages = forSystems packagesFor;
-      checks.aarch64-linux.vm = import ./nix/tests/vm.nix {
+      checks.aarch64-linux = let
         pkgs = import nixpkgs { system = "aarch64-linux"; };
         packages = packagesFor "aarch64-linux";
+      in {
+        vm = import ./nix/tests/vm.nix { inherit pkgs packages; };
+        common = packages.sway.overrideAttrs {
+          pname = "sway-common-tests";
+          src = self;
+          cargoBuildFlags = [ "-p" "sway-common" ];
+          doCheck = true;
+          cargoTestFlags = [ "-p" "sway-common" "--lib" ];
+          postCheck = ''
+            cargo rustc --offline --release --target aarch64-unknown-linux-gnu -p sway-common --lib --crate-type cdylib
+            export SWAY_COMMON_LIBRARY="$PWD/target/aarch64-unknown-linux-gnu/release/libsway_common.so"
+            python3 tools/check-gestures.py
+          '';
+          installPhase = ''mkdir -p "$out"; touch "$out/passed"'';
+          postInstall = "";
+        };
       };
       devShells = forSystems (system:
         let
@@ -107,7 +123,7 @@
             nativeBuildInputs = with pkgs; [
               cargo rustc clang llvmPackages.llvm.dev llvmPackages.libclang
               cmake ninja meson pkg-config python3 git curl wayland-scanner scdoc
-              foot
+              foot swaybg rustfmt clippy
               packages.c2rust
             ];
             buildInputs = with pkgs; [

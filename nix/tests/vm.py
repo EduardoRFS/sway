@@ -61,8 +61,8 @@ def exercise(machine):
     retry(lambda _: window(machine, "vm-x11") is not None)
     assert window(machine, "vm-x11")["shell"] == "xwayland"
     user(machine, "WAYLAND_DISPLAY=wayland-1 wayland-info > /tmp/wayland-info")
-    machine.copy_from_machine("/tmp/wayland-info")
-    machine.screenshot("wayland-and-x11")
+    machine.copy_from_machine("/tmp/wayland-info", machine.name)
+    machine.screenshot(f"{machine.name}-wayland-and-x11")
 
     ipc(machine, '[app_id="vm-terminal"] focus')
     ipc(machine, "mark vm-first; floating enable; resize set width 500 px height 300 px; move position 70 px 80 px")
@@ -71,7 +71,7 @@ def exercise(machine):
     assert floating["floating"] == "user_on" and "vm-first" in floating["marks"]
     ipc(machine, "fullscreen enable")
     retry(lambda _: window(machine, "vm-terminal")["fullscreen_mode"] == 1)
-    machine.screenshot("fullscreen")
+    machine.screenshot(f"{machine.name}-fullscreen")
     ipc(machine, "fullscreen disable; move scratchpad")
     retry(lambda _: not window(machine, "vm-terminal")["visible"])
     ipc(machine, "scratchpad show; floating disable")
@@ -86,7 +86,7 @@ def exercise(machine):
     machine.wait_until_succeeds("pgrep -x swaynag")
     machine.sleep(1)
     machine.succeed("pgrep -x swaynag")
-    machine.screenshot("bar-and-nag")
+    machine.screenshot(f"{machine.name}-bar-and-nag")
     machine.succeed("pkill -x swaynag")
 
     # Save a deterministic subset of state for a C/Rust comparison. Process
@@ -108,8 +108,8 @@ def exercise(machine):
     machine.execute("su - alice -c 'SWAYSOCK=/tmp/sway-ipc.sock swaymsg exit'")
     machine.wait_for_file("/tmp/sway-exit-status")
     assert machine.succeed("cat /tmp/sway-exit-status").strip() == "0"
-    machine.copy_from_machine("/tmp/sway.log")
-    machine.copy_from_machine("/tmp/sway-validate.log")
+    machine.copy_from_machine("/tmp/sway.log", machine.name)
+    machine.copy_from_machine("/tmp/sway-validate.log", machine.name)
     return state
 
 

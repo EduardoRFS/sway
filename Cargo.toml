@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/sway", "crates/swaymsg", "crates/swaybar", "crates/swaynag"]
+members = ["crates/common", "crates/sway", "crates/swaymsg", "crates/swaybar", "crates/swaynag"]
 
 [profile.dev]
 # The C original uses wrapping integer arithmetic. Keep it in debug builds too.

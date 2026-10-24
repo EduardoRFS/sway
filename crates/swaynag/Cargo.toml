@@ -16,4 +16,5 @@ crate-type = ["rlib"]
 path = "src/original/swaynag/main.rs"
 name = "swaynag"
 [dependencies]
+sway-common = { path = "../common" }
 c2rust-bitfields = "0.22.1"

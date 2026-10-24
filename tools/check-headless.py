@@ -58,6 +58,23 @@ def has_window(value, title):
                 or any(has_window(item, title) for item in value.values()))
     return isinstance(value, list) and any(has_window(item, title) for item in value)
 
+def settle(path):
+    # IPC command replies precede transaction application. get_tree mixes
+    # pending geometry with current borders, and hidden clients may wait for
+    # the default 200ms transaction timeout. Require stability beyond that
+    # timeout between actions instead of racing commands against client ACKs.
+    deadline = time.monotonic() + 5
+    previous = request(path, 4)
+    stable_since = time.monotonic()
+    while time.monotonic() < deadline:
+        time.sleep(.03)
+        current = request(path, 4)
+        if current != previous:
+            previous, stable_since = current, time.monotonic()
+        elif time.monotonic() - stable_since >= .3:
+            return
+    raise AssertionError('compositor tree did not settle')
+
 def snapshot(binary):
     with tempfile.TemporaryDirectory(prefix='sway-headless-') as temp:
         directory = Path(temp)
@@ -87,7 +104,7 @@ def snapshot(binary):
                 client_env = dict(env, SWAYSOCK=str(path), WAYLAND_DISPLAY=display)
                 for title in ('parity-one', 'parity-two'):
                     window = subprocess.Popen(['foot', '-c', '/dev/null', '--app-id', 'parity-client',
-                                               '--title', title, 'sleep', '30'],
+                                               '--title', title, 'sleep', '120'],
                                               env=client_env, stdout=log, stderr=log)
                     windows.append(window)
                     deadline = time.monotonic() + 10
@@ -100,7 +117,7 @@ def snapshot(binary):
                         time.sleep(.05)
                     else:
                         raise AssertionError(f'test window {title} did not map')
-                time.sleep(.1)
+                settle(path)
                 transcript = []
                 def queries():
                     for kind in (1, 3, 4, 5, 6, 7, 8, 9, 12, 100, 101):
@@ -135,7 +152,7 @@ def snapshot(binary):
                 ]
                 for command in commands:
                     transcript.append((command, request(path, 0, command)))
-                time.sleep(.1)
+                    settle(path)
                 queries()
                 transcript.append(('bar', request(path, 6, 'parity')))
                 # Reading configuration must return exactly the original text.
@@ -194,6 +211,12 @@ def compare(expected, actual, path=''):
             compare(left, right, path + '/' + str(index))
     else:
         assert expected == actual, (path, expected, actual)
-for expected, actual in zip(reference, translated, strict=True):
-    compare(expected, actual, str(expected[0]))
+try:
+    for expected, actual in zip(reference, translated, strict=True):
+        compare(expected, actual, str(expected[0]))
+except AssertionError:
+    (ROOT / 'build').mkdir(exist_ok=True)
+    (ROOT / 'build/parity-reference.json').write_text(json.dumps(reference, indent=2))
+    (ROOT / 'build/parity-translated.json').write_text(json.dumps(translated, indent=2))
+    raise
 print(f'{len(reference)} headless compositor comparisons passed')

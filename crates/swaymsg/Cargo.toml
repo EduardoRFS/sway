@@ -16,4 +16,5 @@ crate-type = ["rlib"]
 path = "src/swaymsg/main.rs"
 name = "swaymsg"
 [dependencies]
+sway-common = { path = "../common" }
 c2rust-bitfields = "0.22.1"

@@ -30,15 +30,7 @@ pub mod xdg_shell_protocol;
 } // mod build
 pub mod original {
 pub mod common {
-pub mod cairo;
-pub mod gesture;
-pub mod ipc_client;
-pub mod list;
-pub mod log;
-pub mod pango;
-pub mod r#loop;
-pub mod stringop;
-pub mod util;
+    pub use sway_common::ffi::*;
 } // mod common
 pub mod sway {
 #[path = "commands.rs"]

@@ -1,0 +1,10 @@
+[package]
+name = "sway-common"
+version = "1.13.0-dev"
+edition = "2021"
+license = "MIT"
+build = "../../tools/link.rs"
+
+[dependencies]
+c2rust-bitfields = "0.22.1"
+libc = "0.2"

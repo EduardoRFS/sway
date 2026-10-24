@@ -1,9 +1,13 @@
-# Sway: first Rust translation
+# Sway: Rust translation
 
 This tree translates Sway 1.13-dev to Rust, retaining the C implementation's
 structure, allocation, callbacks, ABI, and external libraries. The complete
 original project is preserved in `original/`. The four translated programs are
 in `crates/sway`, `crates/swaymsg`, `crates/swaybar`, and `crates/swaynag`.
+Their common runtime is shared through `crates/common`. Gesture parsing, matching
+and tracking, socket discovery, and IPC framing use maintained Rust APIs with
+owned values, enums, slices, `Result`, and RAII. Those core modules forbid unsafe
+code; compatibility with the remaining translated callers lives in `ffi/`.
 Cargo does not compile or link any of Sway's original C implementation.
 
 Enter the pinned development environment and build:
@@ -28,21 +32,25 @@ Xwayland, libinput, tray support through libsystemd, and GDK Pixbuf.
 This first translation is generated for **aarch64 Linux** against those pinned
 headers. C2Rust folds platform constants and structure offsets into the output.
 Builds reject a different target rather than silently using an incompatible ABI.
-To translate for another native Linux target, enter the flake there and regenerate:
+To generate a fresh comparison scaffold on a native Linux target:
 
 ```sh
 meson setup build/reference original -Dbuildtype=debugoptimized
 ninja -C build/reference
 python3 tools/translate.py
-cargo build --workspace
 ```
+
+The scaffold is written to `build/retranslated/`. It does not overwrite the
+maintained workspace. Port ABI and binding changes from that scaffold explicitly
+when adding another target.
 
 `tools/finalize.py` records the mechanical integration fixes: Cargo scaffolding,
 current Rust variadic API names, enum identity, bitfield accessors, GCC-compatible
 log line numbers, byte-preserving command-line arguments, and SIGPIPE disposition.
 The retained opaque C types require `extern_types`; `.cargo/config.toml` enables
 that compiler feature for this initial port. The generated sources are deliberately
-unsafe and repetitive. They contain no unimplemented placeholders.
+unsafe and repetitive outside the refactored modules. They contain no
+unimplemented placeholders.
 
 Compare the translation with a native C reference build:
 
@@ -58,9 +66,9 @@ The checks compare CLI output and exit status, IPC framing and output, composito
 state with two real Wayland windows after tiling, floating, fullscreen, scratchpad,
 workspace/output/input/seat/bar commands, and startup of swaybar and swaynag as
 layer-shell clients. The flake includes Foot and test fonts. Headless sessions use separate runtime directories
-and do not affect the running desktop. Hardware rendering, real input devices,
-X11 clients, tray interactions, and a complete interactive session still need
-validation. Set `SWAY_PARITY_BIN_DIR` to an absolute binary directory to run the
+and do not affect the running desktop. Physical GPUs and input devices,
+accelerated rendering, and full tray interactions still need validation.
+Set `SWAY_PARITY_BIN_DIR` to an absolute binary directory to run the
 same comparisons against an optimized package. See `original/README.md` and the
 original manuals for usage.
 
@@ -75,3 +83,15 @@ injects keyboard input through QEMU, and exercises Wayland and X11 windows,
 floating/fullscreen/scratchpad behavior, workspaces, bar and tray registration,
 swaynag, reload, and clean exit. It compares resulting state between the two
 guests. Screenshots and guest logs are saved in `result-vm/`.
+
+The common-runtime check runs Rust unit tests and 3,632 differential gesture
+comparisons against the unchanged C implementation:
+
+```sh
+nix build -L .#checks.aarch64-linux.common -o result-common
+```
+
+For local development, use `cargo test -p sway-common --lib`. The IPC tests cover
+fragmented reads and writes, binary payloads, frame boundaries, truncation, and
+the C callers' null pointer for empty requests. Partial writes are completed and
+mid-payload disconnects return an error instead of spinning indefinitely.

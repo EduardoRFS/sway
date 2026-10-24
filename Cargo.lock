@@ -53,6 +53,15 @@ version = "1.13.0-dev"
 dependencies = [
  "c2rust-bitfields",
  "libc",
+ "sway-common",
+]
+
+[[package]]
+name = "sway-common"
+version = "1.13.0-dev"
+dependencies = [
+ "c2rust-bitfields",
+ "libc",
 ]
 
 [[package]]
@@ -60,6 +69,7 @@ name = "swaybar"
 version = "1.13.0-dev"
 dependencies = [
  "c2rust-bitfields",
+ "sway-common",
 ]
 
 [[package]]
@@ -67,6 +77,7 @@ name = "swaymsg"
 version = "1.13.0-dev"
 dependencies = [
  "c2rust-bitfields",
+ "sway-common",
 ]
 
 [[package]]
@@ -74,6 +85,7 @@ name = "swaynag"
 version = "1.13.0-dev"
 dependencies = [
  "c2rust-bitfields",
+ "sway-common",
 ]
 
 [[package]]

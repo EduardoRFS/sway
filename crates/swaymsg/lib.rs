@@ -15,14 +15,6 @@ extern crate c2rust_bitfields;
 
 pub mod src {
 pub mod common {
-pub mod cairo;
-pub mod gesture;
-pub mod ipc_client;
-pub mod list;
-pub mod log;
-pub mod pango;
-pub mod r#loop;
-pub mod stringop;
-pub mod util;
+    pub use sway_common::ffi::*;
 } // mod common
 } // mod src
