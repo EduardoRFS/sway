@@ -24,8 +24,6 @@ pub mod ffi {
     // Unmodified C2Rust output; style lints apply to the maintained modules.
     #[allow(clippy::all)]
     pub mod pango;
-    // Unmodified C2Rust output; style lints apply to the maintained modules.
-    #[allow(clippy::all)]
     pub mod r#loop;
     // Unmodified C2Rust output; style lints apply to the maintained modules.
     #[allow(clippy::all)]

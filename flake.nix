@@ -109,6 +109,7 @@
             cargo rustc --offline --release --target aarch64-unknown-linux-gnu -p sway-common --lib --crate-type cdylib
             export SWAY_COMMON_LIBRARY="$PWD/target/aarch64-unknown-linux-gnu/release/libsway_common.so"
             python3 tools/check-gestures.py
+            python3 tools/check-loop.py
           '';
           installPhase = ''mkdir -p "$out"; touch "$out/passed"'';
           postInstall = "";

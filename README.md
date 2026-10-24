@@ -1,13 +1,20 @@
 # Sway: Rust translation
 
 This tree translates Sway 1.13-dev to Rust, retaining the C implementation's
-structure, allocation, callbacks, ABI, and external libraries. The complete
+external behavior, callbacks, ABI, and external libraries. The complete
 original project is preserved in `original/`. The four translated programs are
 in `crates/sway`, `crates/swaymsg`, `crates/swaybar`, and `crates/swaynag`.
 Their common runtime is shared through `crates/common`. Gesture parsing, matching
 and tracking, socket discovery, and IPC framing use maintained Rust APIs with
 owned values, enums, slices, `Result`, and RAII. Those core modules forbid unsafe
 code; compatibility with the remaining translated callers lives in `ffi/`.
+The client event loop uses `Vec` for registrations, stable `Box` timer handles,
+and automatic cleanup. Callbacks can change registrations or poll recursively;
+no collection borrow survives a callback. Its remaining unsafe operations are
+C handle access, callback invocation, and the `poll`/monotonic-clock system calls.
+The clock arithmetic retains C's negative-delay and truncation behavior.
+Like standard Rust collections, the owned event loop aborts on allocation failure;
+the C implementation could return null or leave partially updated state.
 Cargo does not compile or link any of Sway's original C implementation.
 
 Enter the pinned development environment and build:
@@ -84,8 +91,10 @@ floating/fullscreen/scratchpad behavior, workspaces, bar and tray registration,
 swaynag, reload, and clean exit. It compares resulting state between the two
 guests. Screenshots and guest logs are saved in `result-vm/`.
 
-The common-runtime check runs Rust unit tests and 3,632 differential gesture
-comparisons against the unchanged C implementation:
+The common-runtime check runs Rust unit tests, 3,632 differential gesture
+comparisons, and 77 event-loop comparisons against the unchanged C implementation.
+The event-loop checks cover mutation during callbacks, nested polling, timer
+identity and cancellation, descriptor ownership, hangup/error masks, and EINTR:
 
 ```sh
 nix build -L .#checks.aarch64-linux.common -o result-common
