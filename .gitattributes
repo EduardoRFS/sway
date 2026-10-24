@@ -1,0 +1,2 @@
+# Patch context includes lines containing a single space by design.
+nix/patches/*.patch -whitespace

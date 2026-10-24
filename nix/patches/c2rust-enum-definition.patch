@@ -1,0 +1,14 @@
+diff --git a/c2rust-ast-exporter/src/AstExporter.cpp b/c2rust-ast-exporter/src/AstExporter.cpp
+index ef9d929..d8c3232 100644
+--- a/c2rust-ast-exporter/src/AstExporter.cpp
++++ b/c2rust-ast-exporter/src/AstExporter.cpp
+@@ -2463,7 +2463,8 @@ class TranslateASTVisitor final
+             childIds.push_back(x->getCanonicalDecl());
+         }
+ 
+-        auto underlying_type = D->getIntegerType();
++        auto definition = D->getDefinition();
++        auto underlying_type = (definition ? definition : D)->getIntegerType();
+         typeEncoder.VisitQualTypeOf(underlying_type, D);
+ 
+         encode_entry(D, TagEnumDecl, childIds, underlying_type,

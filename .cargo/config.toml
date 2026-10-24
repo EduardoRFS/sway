@@ -1,0 +1,4 @@
+[env]
+# The mechanical translation retains opaque C types through extern_types.
+# This Rust feature still requires the compiler's unstable-feature gate.
+RUSTC_BOOTSTRAP = "1"

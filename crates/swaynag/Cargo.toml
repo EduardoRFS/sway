@@ -1,0 +1,19 @@
+[package]
+build = "../../tools/link.rs"
+license = "MIT"
+name = "swaynag"
+authors = ["C2Rust"]
+version = "1.13.0-dev"
+publish = false
+edition = "2021"
+autobins = false
+
+[lib]
+name = "swaynag"
+path = "lib.rs"
+crate-type = ["rlib"]
+[[bin]]
+path = "src/original/swaynag/main.rs"
+name = "swaynag"
+[dependencies]
+c2rust-bitfields = "0.22.1"

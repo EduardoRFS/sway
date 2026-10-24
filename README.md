@@ -1,95 +1,77 @@
-# sway
+# Sway: first Rust translation
 
-**[English][en]** - [عربي][ar] - [Azərbaycanca][az] - [Česky][cs] - [Deutsch][de] - [Dansk][dk] - [Español][es] - [Français][fr] - [ქართული][ge] - [Ελληνικά][gr] - [हिन्दी][hi] - [Magyar][hu] - [فارسی][ir] - [Italiano][it] - [日本語][ja] - [한국어][ko] - [Nederlands][nl] - [Norsk][no] - [Polski][pl] - [Português][pt] - [Română][ro] - [Русский][ru] - [Српски][sr] - [Svenska][sv] - [Türkçe][tr] - [Українська][uk] - [中文-简体][zh-CN] - [中文-繁體][zh-TW]
+This tree translates Sway 1.13-dev to Rust, retaining the C implementation's
+structure, allocation, callbacks, ABI, and external libraries. The complete
+original project is preserved in `original/`. The four translated programs are
+in `crates/sway`, `crates/swaymsg`, `crates/swaybar`, and `crates/swaynag`.
+Cargo does not compile or link any of Sway's original C implementation.
 
-sway is an [i3]-compatible [Wayland] compositor. Read the [FAQ]. Join the
-[IRC channel] \(#sway on irc.libera.chat).
+Enter the pinned development environment and build:
 
-## Release Signatures
+```sh
+nix develop
+cargo build --workspace
+```
 
-Releases are signed with [E88F5E48] and published [on GitHub][GitHub releases].
+Executables are in `target/debug/`. `nix build` builds the optimized package;
+`result/bin/` contains all four programs, and the package also installs the
+original configuration, session file, manuals, wallpapers, and completions.
+`SWAY_SYSCONFDIR` selects the system configuration directory at compile time.
+The Cargo default matches the original Meson default; the Nix package uses
+its own `etc/` directory.
 
-## Installation
+The flake locks Nixpkgs, wlroots 0.21, C2Rust, and TinyCBOR. It builds C2Rust
+without network access and patches its handling of forward-declared enums.
+The original dependency versions and the full default feature set are retained:
+Xwayland, libinput, tray support through libsystemd, and GDK Pixbuf.
 
-### From Packages
+This first translation is generated for **aarch64 Linux** against those pinned
+headers. C2Rust folds platform constants and structure offsets into the output.
+Builds reject a different target rather than silently using an incompatible ABI.
+To translate for another native Linux target, enter the flake there and regenerate:
 
-Sway is available in many distributions. Try installing the "sway" package for
-yours.
+```sh
+meson setup build/reference original -Dbuildtype=debugoptimized
+ninja -C build/reference
+python3 tools/translate.py
+cargo build --workspace
+```
 
-### Compiling from Source
+`tools/finalize.py` records the mechanical integration fixes: Cargo scaffolding,
+current Rust variadic API names, enum identity, bitfield accessors, GCC-compatible
+log line numbers, byte-preserving command-line arguments, and SIGPIPE disposition.
+The retained opaque C types require `extern_types`; `.cargo/config.toml` enables
+that compiler feature for this initial port. The generated sources are deliberately
+unsafe and repetitive. They contain no unimplemented placeholders.
 
-Check out [this wiki page][Development setup] if you want to build the HEAD of
-sway and wlroots for testing or development.
+Compare the translation with a native C reference build:
 
-Install dependencies:
+```sh
+meson setup build/reference original -Dbuildtype=debugoptimized
+ninja -C build/reference
+python3 tools/check-cli.py
+python3 tools/check-ipc.py
+python3 tools/check-headless.py
+```
 
-* meson \*
-* [wlroots]
-* wayland
-* wayland-protocols \*
-* pcre2
-* json-c
-* pango
-* cairo
-* gdk-pixbuf2 (optional: additional image formats for system tray)
-* [swaybg] (optional: wallpaper)
-* [scdoc] (optional: man pages) \*
-* git (optional: version info) \*
+The checks compare CLI output and exit status, IPC framing and output, compositor
+state with two real Wayland windows after tiling, floating, fullscreen, scratchpad,
+workspace/output/input/seat/bar commands, and startup of swaybar and swaynag as
+layer-shell clients. The flake includes Foot and test fonts. Headless sessions use separate runtime directories
+and do not affect the running desktop. Hardware rendering, real input devices,
+X11 clients, tray interactions, and a complete interactive session still need
+validation. Set `SWAY_PARITY_BIN_DIR` to an absolute binary directory to run the
+same comparisons against an optimized package. See `original/README.md` and the
+original manuals for usage.
 
-_\* Compile-time dep_
+Run the NixOS VM test on an aarch64 Linux host with KVM:
 
-Run these commands:
+```sh
+nix build -L .#checks.aarch64-linux.vm -o result-vm
+```
 
-    meson setup build/
-    ninja -C build/
-    sudo ninja -C build/ install
-
-## Configuration
-
-If you already use i3, then copy your i3 config to `~/.config/sway/config` and
-it'll work out of the box. Otherwise, copy the sample configuration file to
-`~/.config/sway/config`. It is usually located at `/etc/sway/config`.
-Run `man 5 sway` for information on the configuration.
-
-## Running
-
-Run `sway` from a TTY or from a display manager.
-
-[en]: https://github.com/swaywm/sway#readme
-[ar]: README.ar.md
-[az]: README.az.md
-[cs]: README.cs.md
-[de]: README.de.md
-[dk]: README.dk.md
-[es]: README.es.md
-[fr]: README.fr.md
-[ge]: README.ge.md
-[gr]: README.gr.md
-[hi]: README.hi.md
-[hu]: README.hu.md
-[ir]: README.ir.md
-[it]: README.it.md
-[ja]: README.ja.md
-[ko]: README.ko.md
-[nl]: README.nl.md
-[no]: README.no.md
-[pl]: README.pl.md
-[pt]: README.pt.md
-[ro]: README.ro.md
-[ru]: README.ru.md
-[sr]: README.sr.md
-[sv]: README.sv.md
-[tr]: README.tr.md
-[uk]: README.uk.md
-[zh-CN]: README.zh-CN.md
-[zh-TW]: README.zh-TW.md
-[i3]: https://i3wm.org/
-[Wayland]: http://wayland.freedesktop.org/
-[FAQ]: https://github.com/swaywm/sway/wiki
-[IRC channel]: https://web.libera.chat/gamja/?channels=#sway
-[E88F5E48]: https://keys.openpgp.org/search?q=34FF9526CFEF0E97A340E2E40FDE7BE0E88F5E48
-[GitHub releases]: https://github.com/swaywm/sway/releases
-[Development setup]: https://github.com/swaywm/sway/wiki/Development-Setup
-[wlroots]: https://gitlab.freedesktop.org/wlroots/wlroots
-[swaybg]: https://github.com/swaywm/swaybg/
-[scdoc]: https://git.sr.ht/~sircmpwn/scdoc
+It boots separate C and Rust desktops with virtio GPUs and Pixman rendering,
+injects keyboard input through QEMU, and exercises Wayland and X11 windows,
+floating/fullscreen/scratchpad behavior, workspaces, bar and tray registration,
+swaynag, reload, and clean exit. It compares resulting state between the two
+guests. Screenshots and guest logs are saved in `result-vm/`.

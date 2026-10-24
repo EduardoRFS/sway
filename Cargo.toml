@@ -1,0 +1,10 @@
+[workspace]
+resolver = "2"
+members = ["crates/sway", "crates/swaymsg", "crates/swaybar", "crates/swaynag"]
+
+[profile.dev]
+# The C original uses wrapping integer arithmetic. Keep it in debug builds too.
+overflow-checks = false
+
+[profile.release]
+overflow-checks = false

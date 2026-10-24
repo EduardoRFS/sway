@@ -1,0 +1,81 @@
+{
+  "nodes": {
+    "c2rust": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1792730864,
+        "narHash": "sha256-kRPNdkO4TJ6Mfeo6YntiHj2qtCbTgHQYjIJhZ8x+/yU=",
+        "owner": "immunant",
+        "repo": "c2rust",
+        "rev": "820a9408154c006e2c9dcc90a1bad81385bbfaf1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "immunant",
+        "repo": "c2rust",
+        "rev": "820a9408154c006e2c9dcc90a1bad81385bbfaf1",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1792502884,
+        "narHash": "sha256-IoNisKcGbUjdd45qCqywGMCYmZ5EnkxezvLII0FWwNA=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "02c087f3fe673c9e317f206a627cb6b910336dbe",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "02c087f3fe673c9e317f206a627cb6b910336dbe",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "c2rust": "c2rust",
+        "nixpkgs": "nixpkgs",
+        "tinycbor": "tinycbor",
+        "wlroots": "wlroots"
+      }
+    },
+    "tinycbor": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1630699705,
+        "narHash": "sha256-jblnncmTAGEpRi9ncXf20daftq2F6DXajKZCAnVlAd4=",
+        "owner": "intel",
+        "repo": "tinycbor",
+        "rev": "d393c16f3eb30d0c47e6f9d92db62272f0ec4dc7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "intel",
+        "repo": "tinycbor",
+        "rev": "d393c16f3eb30d0c47e6f9d92db62272f0ec4dc7",
+        "type": "github"
+      }
+    },
+    "wlroots": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1792231418,
+        "narHash": "sha256-GSXC68LYVfqt5HhG1Da6Bw3EryeTqLw5WZZV1qg4nX8=",
+        "ref": "refs/heads/master",
+        "rev": "f9d2520f90e1026152ecb3178a7d390621fcee03",
+        "revCount": 7943,
+        "type": "git",
+        "url": "https://gitlab.freedesktop.org/wlroots/wlroots.git"
+      },
+      "original": {
+        "rev": "f9d2520f90e1026152ecb3178a7d390621fcee03",
+        "type": "git",
+        "url": "https://gitlab.freedesktop.org/wlroots/wlroots.git"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

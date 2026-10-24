@@ -1,0 +1,20 @@
+[package]
+build = "../../tools/link.rs"
+license = "MIT"
+name = "sway"
+authors = ["C2Rust"]
+version = "1.13.0-dev"
+publish = false
+edition = "2021"
+autobins = false
+
+[lib]
+name = "sway"
+path = "lib.rs"
+crate-type = ["rlib"]
+[[bin]]
+path = "src/original/sway/main.rs"
+name = "sway"
+[dependencies]
+c2rust-bitfields = "0.22.1"
+libc = "0.2"
