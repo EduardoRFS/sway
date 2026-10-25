@@ -5,7 +5,7 @@ use super::{
     allocation::{c_string, c_value},
     log::{_sway_assert, _sway_log, sway_log_importance_t},
 };
-use crate::gesture::{Gesture, Kind, Tracker};
+use crate::gesture::{Directions, Gesture, Kind, MatchMode, Tracker};
 use std::{
     ffi::{c_char, CStr, CString},
     ptr,
@@ -23,8 +23,8 @@ impl From<RawGesture> for Gesture {
     fn from(raw: RawGesture) -> Self {
         Self {
             kind: raw.kind.into(),
-            fingers: raw.fingers,
-            directions: raw.directions,
+            fingers: raw.fingers.into(),
+            directions: Directions::from_bits_retain(raw.directions),
         }
     }
 }
@@ -32,9 +32,9 @@ impl From<RawGesture> for Gesture {
 impl From<Gesture> for RawGesture {
     fn from(gesture: Gesture) -> Self {
         Self {
-            kind: gesture.kind.as_raw(),
-            fingers: gesture.fingers,
-            directions: gesture.directions,
+            kind: gesture.kind.into(),
+            fingers: gesture.fingers.into(),
+            directions: gesture.directions.bits(),
         }
     }
 }
@@ -54,7 +54,7 @@ impl From<RawTracker> for Tracker {
     fn from(raw: RawTracker) -> Self {
         Self {
             kind: raw.kind.into(),
-            fingers: raw.fingers,
+            fingers: raw.fingers.into(),
             dx: raw.dx,
             dy: raw.dy,
             scale: raw.scale,
@@ -66,8 +66,8 @@ impl From<RawTracker> for Tracker {
 impl From<Tracker> for RawTracker {
     fn from(tracker: Tracker) -> Self {
         Self {
-            kind: tracker.kind.as_raw(),
-            fingers: tracker.fingers,
+            kind: tracker.kind.into(),
+            fingers: tracker.fingers.into(),
             dx: tracker.dx,
             dy: tracker.dy,
             scale: tracker.scale,
@@ -97,7 +97,7 @@ pub unsafe extern "C" fn gesture_parse(
         }
         Err(error) => {
             unsafe { output.write(error.partial.into()) };
-            c_string(&error.message)
+            c_string(&error.kind.message_bytes())
         }
     }
 }
@@ -115,16 +115,16 @@ pub extern "C" fn gesture_type_string(kind: u32) -> *const c_char {
 
 #[no_mangle]
 pub extern "C" fn gesture_direction_string(direction: u32) -> *const c_char {
-    match direction {
-        0 => c"none".as_ptr(),
-        1 => c"up".as_ptr(),
-        2 => c"down".as_ptr(),
-        4 => c"left".as_ptr(),
-        8 => c"right".as_ptr(),
-        16 => c"inward".as_ptr(),
-        32 => c"outward".as_ptr(),
-        64 => c"clockwise".as_ptr(),
-        128 => c"counterclockwise".as_ptr(),
+    match Directions::from_bits_retain(direction) {
+        value if value.is_empty() => c"none".as_ptr(),
+        Directions::UP => c"up".as_ptr(),
+        Directions::DOWN => c"down".as_ptr(),
+        Directions::LEFT => c"left".as_ptr(),
+        Directions::RIGHT => c"right".as_ptr(),
+        Directions::INWARD => c"inward".as_ptr(),
+        Directions::OUTWARD => c"outward".as_ptr(),
+        Directions::CLOCKWISE => c"clockwise".as_ptr(),
+        Directions::COUNTERCLOCKWISE => c"counterclockwise".as_ptr(),
         _ => ptr::null(),
     }
 }
@@ -141,7 +141,7 @@ pub unsafe extern "C" fn gesture_to_string(gesture: *mut RawGesture) -> *mut c_c
 /// target must point to an initialized RawGesture for the duration of the call.
 #[no_mangle]
 pub unsafe extern "C" fn gesture_check(target: *mut RawGesture, kind: u32, fingers: u8) -> bool {
-    Gesture::from(unsafe { *target }).accepts(kind.into(), fingers)
+    Gesture::from(unsafe { *target }).accepts(kind.into(), fingers.into())
 }
 
 /// # Safety
@@ -152,7 +152,14 @@ pub unsafe extern "C" fn gesture_match(
     input: *mut RawGesture,
     exact: bool,
 ) -> bool {
-    Gesture::from(unsafe { *target }).matches(&Gesture::from(unsafe { *input }), exact)
+    Gesture::from(unsafe { *target }).matches(
+        &Gesture::from(unsafe { *input }),
+        if exact {
+            MatchMode::Exact
+        } else {
+            MatchMode::Subset
+        },
+    )
 }
 
 /// # Safety
@@ -175,7 +182,7 @@ pub unsafe extern "C" fn gesture_compare(left: *mut RawGesture, right: *mut RawG
 #[no_mangle]
 pub unsafe extern "C" fn gesture_tracker_begin(raw: *mut RawTracker, kind: u32, fingers: u8) {
     let mut tracker = Tracker::default();
-    tracker.begin(kind.into(), fingers);
+    tracker.begin(kind.into(), fingers.into());
     unsafe {
         raw.write(tracker.into());
         _sway_log(
@@ -221,8 +228,8 @@ pub unsafe extern "C" fn gesture_tracker_update(
             c"[%s:%d] update tracking %s:%u:? gesture: %f %f %f %f".as_ptr(),
             c"common/gesture.c".as_ptr(),
             258,
-            gesture_type_string(tracker.kind.as_raw()),
-            i32::from(tracker.fingers),
+            gesture_type_string(tracker.kind.into()),
+            i32::from(u8::from(tracker.fingers)),
             tracker.dx,
             tracker.dy,
             tracker.scale,

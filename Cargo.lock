@@ -3,6 +3,12 @@
 version = 4
 
 [[package]]
+name = "bitflags"
+version = "2.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b8e56985ec62d17e9c1001dc89c88ecd7dc08e47eba5ec7c29c7b5eeecde967"
+
+[[package]]
 name = "c2rust-bitfields"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -60,6 +66,7 @@ dependencies = [
 name = "sway-common"
 version = "1.13.0-dev"
 dependencies = [
+ "bitflags",
  "c2rust-bitfields",
  "libc",
 ]

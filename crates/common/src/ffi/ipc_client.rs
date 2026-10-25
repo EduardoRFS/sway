@@ -6,7 +6,7 @@ use super::{
     log::{_sway_abort, _sway_log, sway_log_importance_t},
 };
 use crate::{
-    ipc::{self, Frame, Stage},
+    ipc::{Frame, Stage},
     socket_path,
 };
 use std::{
@@ -70,7 +70,7 @@ unsafe fn receive(fd: i32) -> Option<Frame> {
 }
 
 fn receive_from(stream: &mut UnixStream) -> Option<Frame> {
-    match ipc::read_frame(stream) {
+    match Frame::read_from(stream) {
         Ok(frame) => Some(frame),
         Err(error) => {
             let line = match error.stage {
@@ -166,7 +166,7 @@ pub unsafe extern "C" fn ipc_recv_response(fd: i32) -> *mut IpcResponse {
     }
     let response = c_value(IpcResponse {
         size: frame.payload.len() as u32,
-        kind: frame.kind,
+        kind: frame.kind.into(),
         payload,
     });
     if response.is_null() {
@@ -212,7 +212,12 @@ pub unsafe extern "C" fn ipc_single_command(
     } else {
         unsafe { slice::from_raw_parts(payload.cast(), length) }
     };
-    if let Err(error) = ipc::write_frame(&mut stream, kind, bytes) {
+    if let Err(error) = (Frame {
+        kind: kind.into(),
+        payload: bytes,
+    })
+    .write_to(&mut stream)
+    {
         // Rust's socket writer uses MSG_NOSIGNAL. The legacy API used write,
         // which also delivered SIGPIPE to the calling thread on EPIPE.
         if error.source.kind() == io::ErrorKind::BrokenPipe {
@@ -245,13 +250,18 @@ mod tests {
         let (client, mut peer) = UnixStream::pair().unwrap();
         let server = thread::spawn(move || {
             assert_eq!(
-                ipc::read_frame(&mut peer).unwrap(),
+                Frame::read_from(&mut peer).unwrap(),
                 Frame {
-                    kind: 6,
+                    kind: crate::ipc::MessageType::GET_BAR_CONFIG,
                     payload: vec![]
                 }
             );
-            ipc::write_frame(&mut peer, 6, b"\xff\0bytes").unwrap();
+            Frame {
+                kind: crate::ipc::MessageType::GET_BAR_CONFIG,
+                payload: b"\xff\0bytes",
+            }
+            .write_to(&mut peer)
+            .unwrap();
         });
         let mut length = 0;
         // SAFETY: the descriptor is live, length writable, and NULL is allowed

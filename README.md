@@ -15,6 +15,16 @@ C handle access, callback invocation, and the `poll`/monotonic-clock system call
 The clock arithmetic retains C's negative-delay and truncation behavior.
 Like standard Rust collections, the owned event loop aborts on allocation failure;
 the C implementation could return null or leave partially updated state.
+The maintained gesture API distinguishes `Kind`, `FingerCount`, `Directions`
+(using `bitflags`), and `MatchMode`. Parse errors have matchable variants while
+retaining partial results and arbitrary diagnostic bytes. Equality and hashing
+use full gesture identity; specificity is a separate sorting key. IPC frames
+use a nominal `MessageType`, `Frame::read_from`, and `Frame::write_to`; encoding
+accepts owned or borrowed payloads through `AsRef<[u8]>`, and both operations
+accept `Read`/`Write` trait objects. The C adapters retain the raw ABI layouts.
+Unknown wire values and direction bits remain lossless. These core modules use
+normal compiler and Clippy lints; generated-code exemptions are scoped to their
+remaining compatibility modules.
 Cargo does not compile or link any of Sway's original C implementation.
 
 Enter the pinned development environment and build:
