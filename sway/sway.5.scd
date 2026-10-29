@@ -155,6 +155,8 @@ They are expected to be used with *bindsym* or at runtime through *swaymsg*(1).
 	Makes focused window fullscreen, non-fullscreen, or the opposite of what it
 	is now. If no argument is given, it does the same as _toggle_. If _global_
 	is specified, the window will be fullscreen across all outputs.
+	This command changes compositor layout without notifying the application
+	of a fullscreen state change. The application still receives size changes.
 
 *gaps* inner|outer|horizontal|vertical|top|right|bottom|left all|current
 set|plus|minus|toggle <amount>

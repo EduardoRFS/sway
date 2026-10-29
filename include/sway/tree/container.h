@@ -256,6 +256,12 @@ void container_set_fullscreen(struct sway_container *con,
 		enum sway_fullscreen_mode mode);
 
 /**
+ * Change compositor fullscreen state without notifying the application.
+ */
+void container_set_fullscreen_no_notify(struct sway_container *con,
+		enum sway_fullscreen_mode mode);
+
+/**
  * Convenience function.
  */
 void container_fullscreen_disable(struct sway_container *con);

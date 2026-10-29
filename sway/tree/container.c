@@ -1170,12 +1170,15 @@ void container_end_mouse_operation(struct sway_container *container) {
 	}
 }
 
-static void set_fullscreen(struct sway_container *con, bool enable) {
+static void set_fullscreen(struct sway_container *con, bool enable,
+		bool notify_client) {
 	if (!con->view) {
 		return;
 	}
 	if (con->view->impl->set_fullscreen) {
-		con->view->impl->set_fullscreen(con->view, enable);
+		if (notify_client) {
+			con->view->impl->set_fullscreen(con->view, enable);
+		}
 		if (con->view->foreign_toplevel) {
 			wlr_foreign_toplevel_handle_v1_set_fullscreen(
 				con->view->foreign_toplevel, enable);
@@ -1183,12 +1186,13 @@ static void set_fullscreen(struct sway_container *con, bool enable) {
 	}
 }
 
-static void container_fullscreen_workspace(struct sway_container *con) {
+static void container_fullscreen_workspace(struct sway_container *con,
+		bool notify_client) {
 	if (!sway_assert(con->pending.fullscreen_mode == FULLSCREEN_NONE,
 				"Expected a non-fullscreen container")) {
 		return;
 	}
-	set_fullscreen(con, true);
+	set_fullscreen(con, true, notify_client);
 	con->pending.fullscreen_mode = FULLSCREEN_WORKSPACE;
 
 	con->saved_x = con->pending.x;
@@ -1217,12 +1221,13 @@ static void container_fullscreen_workspace(struct sway_container *con) {
 	ipc_event_window(con, "fullscreen_mode");
 }
 
-static void container_fullscreen_global(struct sway_container *con) {
+static void container_fullscreen_global(struct sway_container *con,
+		bool notify_client) {
 	if (!sway_assert(con->pending.fullscreen_mode == FULLSCREEN_NONE,
 				"Expected a non-fullscreen container")) {
 		return;
 	}
-	set_fullscreen(con, true);
+	set_fullscreen(con, true, notify_client);
 
 	root->fullscreen_global = con;
 	con->saved_x = con->pending.x;
@@ -1243,12 +1248,13 @@ static void container_fullscreen_global(struct sway_container *con) {
 	ipc_event_window(con, "fullscreen_mode");
 }
 
-void container_fullscreen_disable(struct sway_container *con) {
+static void container_fullscreen_disable_internal(struct sway_container *con,
+		bool notify_client) {
 	if (!sway_assert(con->pending.fullscreen_mode != FULLSCREEN_NONE,
 				"Expected a fullscreen container")) {
 		return;
 	}
-	set_fullscreen(con, false);
+	set_fullscreen(con, false, notify_client);
 
 	if (container_is_floating(con)) {
 		con->pending.x = con->saved_x;
@@ -1295,35 +1301,57 @@ void container_fullscreen_disable(struct sway_container *con) {
 	}
 }
 
-void container_set_fullscreen(struct sway_container *con,
-		enum sway_fullscreen_mode mode) {
+static void container_set_fullscreen_internal(struct sway_container *con,
+		enum sway_fullscreen_mode mode, bool notify_client) {
 	if (con->pending.fullscreen_mode == mode) {
+		// A command may have changed only the compositor state. Still
+		// acknowledge a subsequent application request for the same mode.
+		if (notify_client) {
+			set_fullscreen(con, mode != FULLSCREEN_NONE, true);
+		}
 		return;
 	}
 
 	switch (mode) {
 	case FULLSCREEN_NONE:
-		container_fullscreen_disable(con);
+		container_fullscreen_disable_internal(con, notify_client);
 		break;
 	case FULLSCREEN_WORKSPACE:
 		if (root->fullscreen_global) {
-			container_fullscreen_disable(root->fullscreen_global);
+			container_fullscreen_disable_internal(root->fullscreen_global,
+					root->fullscreen_global != con || notify_client);
 		}
 		if (con->pending.workspace && con->pending.workspace->fullscreen) {
-			container_fullscreen_disable(con->pending.workspace->fullscreen);
+			container_fullscreen_disable_internal(con->pending.workspace->fullscreen,
+					con->pending.workspace->fullscreen != con || notify_client);
 		}
-		container_fullscreen_workspace(con);
+		container_fullscreen_workspace(con, notify_client);
 		break;
 	case FULLSCREEN_GLOBAL:
 		if (root->fullscreen_global) {
-			container_fullscreen_disable(root->fullscreen_global);
+			container_fullscreen_disable_internal(root->fullscreen_global,
+					root->fullscreen_global != con || notify_client);
 		}
 		if (con->pending.fullscreen_mode == FULLSCREEN_WORKSPACE) {
-			container_fullscreen_disable(con);
+			container_fullscreen_disable_internal(con, notify_client);
 		}
-		container_fullscreen_global(con);
+		container_fullscreen_global(con, notify_client);
 		break;
 	}
+}
+
+void container_fullscreen_disable(struct sway_container *con) {
+	container_fullscreen_disable_internal(con, true);
+}
+
+void container_set_fullscreen(struct sway_container *con,
+		enum sway_fullscreen_mode mode) {
+	container_set_fullscreen_internal(con, mode, true);
+}
+
+void container_set_fullscreen_no_notify(struct sway_container *con,
+		enum sway_fullscreen_mode mode) {
+	container_set_fullscreen_internal(con, mode, false);
 }
 
 struct sway_container *container_toplevel_ancestor(
@@ -1494,10 +1522,10 @@ void container_replace(struct sway_container *container,
 	}
 	switch (fullscreen) {
 	case FULLSCREEN_WORKSPACE:
-		container_fullscreen_workspace(replacement);
+		container_fullscreen_workspace(replacement, true);
 		break;
 	case FULLSCREEN_GLOBAL:
-		container_fullscreen_global(replacement);
+		container_fullscreen_global(replacement, true);
 		break;
 	case FULLSCREEN_NONE:
 		// noop

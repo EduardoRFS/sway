@@ -51,7 +51,7 @@ struct cmd_results *cmd_fullscreen(int argc, char **argv) {
 		mode = global ? FULLSCREEN_GLOBAL : FULLSCREEN_WORKSPACE;
 	}
 
-	container_set_fullscreen(container, mode);
+	container_set_fullscreen_no_notify(container, mode);
 	arrange_root();
 
 	return cmd_results_new(CMD_SUCCESS, NULL);
